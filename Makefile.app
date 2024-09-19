@@ -55,6 +55,7 @@ $(addprefix $(TEST_PREFIX), $(DIST_DIRS)):
 
 staticfiles:
 	cp -rf $(LOCAL_STATIC_CSS) $(TEST_PREFIX)$(ELIOMSTATICDIR)
+	cp -rf $(LOCAL_STATIC_FILES) $(TEST_PREFIX)$(ELIOMSTATICDIR)
 
 ##----------------------------------------------------------------------
 ## Installing & Running

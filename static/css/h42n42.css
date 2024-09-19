@@ -1,3 +1,9 @@
 * {
     font-family: sans-serif;
 }
+
+.board {
+    background-color: #303090;
+    margin-top: 100px;
+    margin-left: 100px;
+}

@@ -62,6 +62,7 @@ ELIOMSTATICDIR        := var/www/${PROJECT_NAME}
 
 LOCAL_STATIC          := static
 LOCAL_STATIC_CSS      := $(LOCAL_STATIC)/css
+LOCAL_STATIC_FILES    := $(LOCAL_STATIC)/assets
 CSS_PREFIX            := $(LOCAL_STATIC_CSS)/${PROJECT_NAME}
 ##----------------------------------------------------------------------
 
