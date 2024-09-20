@@ -3,7 +3,7 @@
 }
 
 .board {
-    background-color: #303090;
+    background-image: url("../assets/map.png");
     padding: 0px;
     position: absolute;
     margin-top: 100px;
