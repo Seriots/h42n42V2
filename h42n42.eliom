@@ -17,7 +17,18 @@ end)
 
 let%server board_elt = div ~a:[a_class ["board"]] []
 
+let%client disable_event (event : Dom_html.dragEvent Js.t Dom_html.Event.typ) (html_elt : #Dom_html.eventTarget Js.t) =
+	Lwt.async (fun () ->
+		Lwt_js_events.seq_loop
+			(Lwt_js_events.make_event event) ~use_capture:true html_elt
+			(fun ev _ -> Dom.preventDefault ev; Lwt.return ()))
+
+
 let%client init_client () =
+
+  disable_event Dom_html.Event.dragstart Dom_html.document;
+  disable_event Dom_html.Event.drop Dom_html.document;
+
   let board = Eliom_content.Html.To_dom.of_div ~%board_elt in
   board##.style##.width := Js.string (string_of_int(board_width) ^ "px");
   board##.style##.height := Js.string (string_of_int(board_height) ^ "px");

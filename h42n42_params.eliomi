@@ -3,6 +3,7 @@ val%client board_height : int
 val%client board_spawn_height : int
 val%client board_spawn_height_start : int
 val%client board_border_infection : int
+val%client board_border_heal : int
 
 val%client board_margin_left : int
 val%client board_margin_top : int

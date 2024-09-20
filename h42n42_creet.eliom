@@ -109,16 +109,42 @@ let%client new_creet () =
 	@param endLoop: bool ref -> the reference to the loop of the creet
 	@return unit
 *)
-let%client basic_infection (creet_obj: creet) (board: Dom_html.divElement Js.t) (endLoop: bool ref) = 
+let%client basic_infection (creet_obj: creet) (board: Dom_html.divElement Js.t) (endLoop: bool ref) (isSelected: bool ref) (isHealed: bool ref) = 
 	creet_obj.speed <- creet_obj.speed *. infected_speed_reduce_factor;
+	isHealed := false;
+	update_img creet_obj;
 	let life_countdown () =
-		let%lwt () = Lwt_js.sleep infected_life_duration in
-		Dom.removeChild board creet_obj.creet_elt;
-		endLoop := true;
-		Lwt.return ()
-	in	
-	Lwt.async (fun () -> life_countdown ());
-	update_img (creet_obj)
+		let p = 
+			let%lwt () = Lwt_js.sleep infected_life_duration in
+			let rec waiting_selection () =
+				let%lwt () = Lwt_js.sleep 0.1 in
+				if not (!isSelected) then
+				(
+					if not (creet_obj.state = Healthy) then
+					(
+						Dom.removeChild board creet_obj.creet_elt;
+						endLoop := true;
+					);
+					Lwt.return ()
+				)
+				else
+					waiting_selection ()
+			in
+			waiting_selection ()
+		in
+		let rec check_heal () =
+			let%lwt () = Lwt_js.sleep 0.1 in
+			if !isHealed then
+			(
+				Lwt.cancel p;
+				Lwt.return ()
+			)
+			else
+				check_heal ()
+		in
+		check_heal ()
+	in
+	Lwt.async (fun () -> life_countdown ())
 
 
 (*
@@ -129,19 +155,30 @@ let%client basic_infection (creet_obj: creet) (board: Dom_html.divElement Js.t) 
 	@param endLoop: bool ref -> the reference to the loop of the creet
 	@return unit
 *)
-let%client berserker_infection (creet_obj: creet) (board: Dom_html.divElement Js.t) (endLoop: bool ref) = 
-	basic_infection (creet_obj) (board) (endLoop);
+let%client berserker_infection (creet_obj: creet) (board: Dom_html.divElement Js.t) (endLoop: bool ref) (isSelected: bool ref) (isHealed: bool ref) = 
+	basic_infection (creet_obj) (board) (endLoop) (isSelected) (isHealed);
 	let rec berserker_growth () = 
 		let%lwt () = Lwt_js.sleep growth_delay in
-		creet_obj.size.width <- creet_obj.size.width +. (base_creet_width *. (1.0 /. (infected_life_duration /. growth_delay)));
-		creet_obj.size.height <- creet_obj.size.height +. (base_creet_height *. (1.0 /. (infected_life_duration /. growth_delay)));
-		log(string_of_float creet_obj.size.width);
-		creet_obj.creet_elt##.style##.width := Js.string (string_of_int (int_of_float(creet_obj.size.width)) ^ "px");
-		creet_obj.creet_elt##.style##.height := Js.string (string_of_int (int_of_float(creet_obj.size.height)) ^ "px");
-		if !endLoop then
+		if !isHealed then
+		(
+			creet_obj.size.width <- base_creet_width;
+			creet_obj.size.height <- base_creet_height;
+			creet_obj.creet_elt##.style##.width := Js.string (string_of_int (int_of_float(creet_obj.size.width)) ^ "px");
+			creet_obj.creet_elt##.style##.height := Js.string (string_of_int (int_of_float(creet_obj.size.height)) ^ "px");
 			Lwt.return ()
+		)
 		else
-			berserker_growth ()
+		(
+			creet_obj.size.width <- creet_obj.size.width +. (base_creet_width *. (1.0 /. (infected_life_duration /. growth_delay)));
+			creet_obj.size.height <- creet_obj.size.height +. (base_creet_height *. (1.0 /. (infected_life_duration /. growth_delay)));
+			creet_obj.creet_elt##.style##.width := Js.string (string_of_int (int_of_float(creet_obj.size.width)) ^ "px");
+			creet_obj.creet_elt##.style##.height := Js.string (string_of_int (int_of_float(creet_obj.size.height)) ^ "px");
+			if !endLoop then
+				Lwt.return ()
+			else
+				berserker_growth ()
+		);
+
 	in
 	Lwt.async (fun () -> berserker_growth ())
 
@@ -155,23 +192,23 @@ let%client berserker_infection (creet_obj: creet) (board: Dom_html.divElement Js
 	@param board: Dom_html.divElement Js.t -> the board where the creet is
 	@param endLoop: bool ref -> the reference to the loop of the creet
 *)
-let%client get_infected (creet_obj: creet) (board: Dom_html.divElement Js.t) (endLoop: bool ref) = 
+let%client get_infected (creet_obj: creet) (board: Dom_html.divElement Js.t) (endLoop: bool ref) (isSelected: bool ref) (isHealed: bool ref) = 
 
 	let rd = Random.int 100 in
 	if rd < berserker_spawn_percent then
 	(
 		creet_obj.state <- Berserker;
-		berserker_infection (creet_obj) (board) (endLoop)
+		berserker_infection (creet_obj) (board) (endLoop) (isSelected) (isHealed)
 	)
 	else if rd < berserker_spawn_percent + mean_spawn_percent then
 	(
 		creet_obj.state <- Mean;
-		basic_infection (creet_obj) (board) (endLoop)
+			basic_infection (creet_obj) (board) (endLoop) (isSelected) (isHealed)
 	)
 	else
 	(
 		creet_obj.state <- Infected;
-		basic_infection (creet_obj) (board) (endLoop)
+			basic_infection (creet_obj) (board) (endLoop) (isSelected) (isHealed)
 	)
 
 
@@ -192,9 +229,9 @@ let%client check_river_infection (creet_obj: creet) : bool =
 	@param creet_obj: creet -> the creet object to check
 	@return bool
 *)
-let%client check_infection (creet_obj: creet) (board: Dom_html.divElement Js.t) (endLoop: bool ref) =
+let%client check_infection (creet_obj: creet) (board: Dom_html.divElement Js.t) (endLoop: bool ref) (isSelected: bool ref) (isHealed: bool ref) =
 	if check_river_infection(creet_obj) then
-		get_infected (creet_obj) (board) (endLoop)
+		get_infected (creet_obj) (board) (endLoop) (isSelected) (isHealed)
 
 
 (*
@@ -242,6 +279,48 @@ let%client random_switch_direction (creet_obj: creet) =
 
 
 (*
+	Compute the mouse coord and apply it to the grabed creet
+	@param creet_obj: creet -> the creet object to move
+	@param ev: Dom_html.mouseEvent Js.t -> the mouse event
+	@param board: Dom_html.divElement Js.t -> the board where the creet is
+	@return unit
+*)
+let%client set_coord (creet_obj: creet) (ev: Dom_html.mouseEvent Js.t) (board: Dom_html.divElement Js.t) =
+	let x0, y0 = Dom_html.elementClientPosition board in
+	creet_obj.x <- float (max (min (ev##.clientX - x0 - int_of_float(creet_obj.size.width) / 2) (board_width - (int_of_float(creet_obj.size.width) + 8))) 8);
+	creet_obj.y <- float (max (min (ev##.clientY - y0 - int_of_float(creet_obj.size.height) / 2) (board_height - (int_of_float(creet_obj.size.height) + 8))) 8)
+
+
+(*
+	Apply the mouse coord to the creet and update its position in the dom object
+	@param creet_obj: creet -> the creet object to move
+	@param ev: Dom_html.mouseEvent Js.t -> the mouse event
+	@param board: Dom_html.divElement Js.t -> the board where the creet is
+	@return unit
+*)
+let%client drag_creet (creet_obj: creet) (ev: Dom_html.mouseEvent Js.t) (board: Dom_html.divElement Js.t)=
+	set_coord creet_obj ev board;
+	creet_obj.creet_elt##.style##.left := Js.string (string_of_int (int_of_float(creet_obj.x)) ^ "px");
+	creet_obj.creet_elt##.style##.top := Js.string (string_of_int (int_of_float(creet_obj.y)) ^ "px");
+	Lwt.return ()
+
+
+(*
+	Check if the creet is in the heal zone and heal it
+	@param creet_obj: creet -> the creet object to heal
+	@param isHealed: bool ref -> the reference to the heal state of the creet
+	@return unit
+*)
+let%client drop_creet (creet_obj: creet) (isHealed: bool ref) =
+	if creet_obj.y > float(board_border_heal) then
+	(
+		log("healed");
+		creet_obj.state <- Healthy;
+		update_img creet_obj;
+		isHealed := true
+	);	
+	Lwt.return ()
+(*
 	Generate a new creet and start its loop
 	@param board: Dom_html.divElement Js.t -> the board where the creet will be
 	@return unit
@@ -250,18 +329,19 @@ let%client generate_new_creet board =
 
 	let creet_obj = new_creet () in
 	let endLoop = ref false in
-	let is_selected = ref false in
+	let isSelected = ref false in
+	let isHealed = ref false in
 
 	Dom.appendChild board creet_obj.creet_elt;
 
 	let rec update_loop () =
 		let%lwt () = Lwt_js.sleep 0.0001 in
-		if not (!is_selected) then
+		if not (!isSelected) then
 		(
 			random_switch_direction (creet_obj);
 			handle_border_collision (creet_obj);
 			move_forward (creet_obj);
-			check_infection (creet_obj) (board) (endLoop);
+			check_infection (creet_obj) (board) (endLoop) (isSelected) (isHealed);
 		);
 		if !endLoop then
 			Lwt.return ()
@@ -270,37 +350,16 @@ let%client generate_new_creet board =
 	in
 	Lwt.async (fun () -> update_loop ());
 
-	
+
 	Lwt.async (fun () ->
 		let open Lwt_js_events in
-		mousedowns creet_obj.creet_elt (fun _ _ -> 
-			is_selected := true;
-	        let _  = 
-         		Lwt.pick
-           		[mousemoves Dom_html.document (fun _ _ -> log("move"); Lwt.return ());
-            	mouseups Dom_html.document (fun _ _ ->  is_selected := false; Lwt.return())] in
-			(* Lwt.pick [
-				(
-					let%lwt () = Lwt_js_events.mousemoves Dom_html.document (fun ev _ ->
-						let mouse_x = float_of_int ev##.clientX in
-						let mouse_y = float_of_int ev##.clientY in
-						creet_obj.x <- mouse_x;
-						creet_obj.y <- mouse_y;
-						creet_obj.creet_elt##.style##.left := Js.string (string_of_int (int_of_float(creet_obj.x)) ^ "px");
-						creet_obj.creet_elt##.style##.top := Js.string (string_of_int (int_of_float(creet_obj.y)) ^ "px");
-						Lwt.return ()
-					) in
-					Lwt.return ()
-				);
-				(
-					let%lwt () = Lwt_js_events.mouseups Dom_html.document (fun _ _ -> 
-						is_selected := false;
-						Lwt.return ()
-					) in
-					Lwt.return ()
-				)
-			] in *)
-			Lwt.return ()
-
+		mousedowns creet_obj.creet_elt (fun ev _ ->
+			isSelected := true;
+			let%lwt () = (drag_creet (creet_obj) (ev) (board)) in
+			Lwt.pick
+				[
+					mousemoves Dom_html.document (fun x _ -> (drag_creet (creet_obj) (x) (board)));
+					let%lwt _ = mouseup Dom_html.document in (isSelected := false; drop_creet (creet_obj) (isHealed))
+				]
 		)
 	)
