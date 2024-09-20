@@ -91,6 +91,7 @@ let%client new_creet () =
   
 	creet_elt##.src := Js.string img;
 	creet_elt##.alt := Js.string "CREET";
+	creet_elt##.className := Js.string "creet";
 	creet_elt##.style##.position := Js.string "absolute";
 	creet_elt##.style##.left := Js.string (string_of_int (board_margin_left + int_of_float(x)) ^ "px");
 	creet_elt##.style##.top := Js.string (string_of_int (board_margin_top + int_of_float(y)) ^ "px");
@@ -249,16 +250,19 @@ let%client generate_new_creet board =
 
 	let creet_obj = new_creet () in
 	let endLoop = ref false in
+	let is_selected = ref false in
 
 	Dom.appendChild board creet_obj.creet_elt;
 
 	let rec update_loop () =
 		let%lwt () = Lwt_js.sleep 0.0001 in
-
-		random_switch_direction (creet_obj);
-		handle_border_collision (creet_obj);
-		move_forward (creet_obj);
-		check_infection (creet_obj) (board) (endLoop);
+		if not (!is_selected) then
+		(
+			random_switch_direction (creet_obj);
+			handle_border_collision (creet_obj);
+			move_forward (creet_obj);
+			check_infection (creet_obj) (board) (endLoop);
+		);
 		if !endLoop then
 			Lwt.return ()
 		else
@@ -266,10 +270,37 @@ let%client generate_new_creet board =
 	in
 	Lwt.async (fun () -> update_loop ());
 
+	
 	Lwt.async (fun () ->
 		let open Lwt_js_events in
 		mousedowns creet_obj.creet_elt (fun _ _ -> 
-			log "clicked";
+			is_selected := true;
+	        let _  = 
+         		Lwt.pick
+           		[mousemoves Dom_html.document (fun _ _ -> log("move"); Lwt.return ());
+            	mouseups Dom_html.document (fun _ _ ->  is_selected := false; Lwt.return())] in
+			(* Lwt.pick [
+				(
+					let%lwt () = Lwt_js_events.mousemoves Dom_html.document (fun ev _ ->
+						let mouse_x = float_of_int ev##.clientX in
+						let mouse_y = float_of_int ev##.clientY in
+						creet_obj.x <- mouse_x;
+						creet_obj.y <- mouse_y;
+						creet_obj.creet_elt##.style##.left := Js.string (string_of_int (int_of_float(creet_obj.x)) ^ "px");
+						creet_obj.creet_elt##.style##.top := Js.string (string_of_int (int_of_float(creet_obj.y)) ^ "px");
+						Lwt.return ()
+					) in
+					Lwt.return ()
+				);
+				(
+					let%lwt () = Lwt_js_events.mouseups Dom_html.document (fun _ _ -> 
+						is_selected := false;
+						Lwt.return ()
+					) in
+					Lwt.return ()
+				)
+			] in *)
 			Lwt.return ()
+
 		)
 	)
