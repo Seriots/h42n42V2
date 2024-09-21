@@ -76,6 +76,7 @@
  (alias h42n42)
  (deps
   h42n42_params.cma
+  h42n42_collisions.cma
   h42n42_creet.cma
   h42n42.cma
   h42n42_main.bc
