@@ -20,6 +20,8 @@ type%client creet = {
 	mutable speed: float;
 	size: creetSize;
 	mutable state: e_state; 
+	mutable move_fonction: (creet -> unit);
+	mutable target : creet option;
 	creet_elt: Dom_html.imageElement Js.t;
 	id: int;
 }

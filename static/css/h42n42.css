@@ -12,6 +12,18 @@
     
 }
 
+.frame-background {
+    background-image: url("../assets/frameBackgroundv2.png");
+    padding: 0px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 898px;
+    height: 898px;
+    background-size: 898px;
+    transform: translate(-50%, -58%);
+}
+
 .creet {
     -moz-user-select: none; /* Firefox */
     -webkit-user-select: none; /* Chrome, Safari, Opéra depuis la version 15 */
@@ -22,4 +34,8 @@
 .creet:active {
     opacity: 0.6;
 
+}
+
+body {
+    background-image: url("../assets/fullBackground.png");
 }

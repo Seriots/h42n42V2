@@ -8,6 +8,7 @@ val%client board_border_heal : int
 val%client board_margin_left : int
 val%client board_margin_top : int
 
+val%client base_creet_number : int
 
 val%client base_speed : float
 val%client base_spawn_speed : float
@@ -23,5 +24,7 @@ val%client hitbox_ratio : float
 
 val%client berserker_spawn_percent : int
 val%client mean_spawn_percent : int
+
+val%client mean_shrink_percent : float
 
 val%client infection_contact_percent : int

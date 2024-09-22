@@ -35,48 +35,47 @@ let%client init_client () =
 	board##.style##.height := Js.string (string_of_int(board_height) ^ "px");
 	Random.self_init ();
 
+	let healthy_creets = ref [] in
 	let quadtree = init_quadtree 4 in
-	generate_new_creet board quadtree;
-	log_quad_tree quadtree;
+
+	for _ = 0 to base_creet_number do
+		generate_new_creet (board) (quadtree) (healthy_creets)
+	done;
 	
-	let log_quadtree_size () =
-		let size = quadtree_size quadtree in
-		Js_of_ocaml.Firebug.console##log(Js.string (string_of_int size))
-	
-	in
 	let rec loop () =
 		let%lwt () = Lwt_js.sleep base_spawn_speed in
-		generate_new_creet board quadtree;
-		log_quadtree_size ();
+		generate_new_creet (board) (quadtree) (healthy_creets);
 		loop ()
 	in
 	Lwt.async loop
 
 
 let%server page () =
-  (
-    Eliom_tools.F.html
-      ~title:"h42n42"
-      ~css:[["css";"h42n42.css"]]
-      Html.F.(body [
-              board_elt
+(
+	Eliom_tools.F.html
+		~title:"h42n42"
+		~css:[["css";"h42n42.css"]]
+		Html.F.(body [
+			div ~a:[a_class ["frame-background"]] [
+					board_elt
+				]
             ]
       )
   )
         
 let%server main_service =
-  Eliom_service.create
-    ~path:(Eliom_service.Path [])
-    ~meth:(Eliom_service.Get Eliom_parameter.unit)
-  ()
+	Eliom_service.create
+		~path:(Eliom_service.Path [])
+		~meth:(Eliom_service.Get Eliom_parameter.unit)
+	()
 
 
 let%server () =
-  H42n42_app.register
-    ~service:main_service
-    (
-      fun () () ->
-      let _ = [%client (init_client () : unit) ] in
-      Lwt.return (page ())
-    )
+	H42n42_app.register
+		~service:main_service
+		(
+			fun () () ->
+			let _ = [%client (init_client () : unit) ] in
+			Lwt.return (page ())
+		)
 
