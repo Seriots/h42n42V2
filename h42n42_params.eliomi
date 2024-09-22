@@ -19,6 +19,9 @@ val%client growth_delay : float
 
 val%client base_creet_width : float
 val%client base_creet_height : float
+val%client hitbox_ratio : float
 
 val%client berserker_spawn_percent : int
 val%client mean_spawn_percent : int
+
+val%client infection_contact_percent : int

@@ -1,31 +1,10 @@
 open%client Js_of_ocaml
 open%client Js_of_ocaml_lwt
 
+open%client H42n42_types
 open%client H42n42_params
+open%client H42n42_collisions
 
-
-type%client e_state = Healthy | Infected | Berserker | Mean
-
-type%client direction = {
-	mutable x : float;
-	mutable y : float;
-}
-
-type%client creetSize = {
-	mutable width : float;
-	mutable height : float;
-}
-  
-type%client creet = {
-	mutable x : float;
-	mutable y : float;
-	mutable img: string;
-	mutable direction: direction;
-	mutable speed: float;
-	size: creetSize;
-	mutable state: e_state; 
-	creet_elt: Dom_html.imageElement Js.t;
-}
 
 (*
 	Wrapper for Js console log
@@ -87,6 +66,7 @@ let%client new_creet () =
 	let speed = base_speed in
 	let state = Healthy in
 	let img = get_new_img direction state in
+	let id = Random.int 1000000 in
 	let creet_elt = Dom_html.createImg Dom_html.document in
   
 	creet_elt##.src := Js.string img;
@@ -97,7 +77,7 @@ let%client new_creet () =
 	creet_elt##.style##.top := Js.string (string_of_int (board_margin_top + int_of_float(y)) ^ "px");
 	creet_elt##.style##.width := Js.string (string_of_int (int_of_float(size.width)) ^ "px");
 	creet_elt##.style##.height := Js.string (string_of_int (int_of_float(size.height)) ^ "px");
-	{ x; y; direction; speed; img; size; creet_elt; state }
+	{ x; y; direction; speed; img; size; state; creet_elt; id }
 
 
 (*
@@ -109,7 +89,7 @@ let%client new_creet () =
 	@param endLoop: bool ref -> the reference to the loop of the creet
 	@return unit
 *)
-let%client basic_infection (creet_obj: creet) (board: Dom_html.divElement Js.t) (endLoop: bool ref) (isSelected: bool ref) (isHealed: bool ref) = 
+let%client basic_infection (creet_obj: creet) (board: Dom_html.divElement Js.t) (endLoop: bool ref) (isSelected: bool ref) (isHealed: bool ref) (quadtree: quadtree) = 
 	creet_obj.speed <- creet_obj.speed *. infected_speed_reduce_factor;
 	isHealed := false;
 	update_img creet_obj;
@@ -122,7 +102,8 @@ let%client basic_infection (creet_obj: creet) (board: Dom_html.divElement Js.t) 
 				(
 					if not (creet_obj.state = Healthy) then
 					(
-						Dom.removeChild board creet_obj.creet_elt;
+						Dom.removeChild (board) (creet_obj.creet_elt);
+						quadtree_remove (quadtree) (creet_obj);
 						endLoop := true;
 					);
 					Lwt.return ()
@@ -137,6 +118,7 @@ let%client basic_infection (creet_obj: creet) (board: Dom_html.divElement Js.t) 
 			if !isHealed then
 			(
 				Lwt.cancel p;
+				quadtree_remove (quadtree) (creet_obj);
 				Lwt.return ()
 			)
 			else
@@ -155,8 +137,7 @@ let%client basic_infection (creet_obj: creet) (board: Dom_html.divElement Js.t) 
 	@param endLoop: bool ref -> the reference to the loop of the creet
 	@return unit
 *)
-let%client berserker_infection (creet_obj: creet) (board: Dom_html.divElement Js.t) (endLoop: bool ref) (isSelected: bool ref) (isHealed: bool ref) = 
-	basic_infection (creet_obj) (board) (endLoop) (isSelected) (isHealed);
+let%client berserker_infection (creet_obj: creet) (endLoop: bool ref) (isHealed: bool ref) = 
 	let rec berserker_growth () = 
 		let%lwt () = Lwt_js.sleep growth_delay in
 		if !isHealed then
@@ -192,23 +173,24 @@ let%client berserker_infection (creet_obj: creet) (board: Dom_html.divElement Js
 	@param board: Dom_html.divElement Js.t -> the board where the creet is
 	@param endLoop: bool ref -> the reference to the loop of the creet
 *)
-let%client get_infected (creet_obj: creet) (board: Dom_html.divElement Js.t) (endLoop: bool ref) (isSelected: bool ref) (isHealed: bool ref) = 
+let%client get_infected (creet_obj: creet) (board: Dom_html.divElement Js.t) (endLoop: bool ref) (isSelected: bool ref) (isHealed: bool ref) (quadtree: quadtree) = 
 
 	let rd = Random.int 100 in
 	if rd < berserker_spawn_percent then
 	(
 		creet_obj.state <- Berserker;
-		berserker_infection (creet_obj) (board) (endLoop) (isSelected) (isHealed)
+		basic_infection (creet_obj) (board) (endLoop) (isSelected) (isHealed) (quadtree);
+		berserker_infection (creet_obj) (endLoop) (isHealed)
 	)
 	else if rd < berserker_spawn_percent + mean_spawn_percent then
 	(
 		creet_obj.state <- Mean;
-			basic_infection (creet_obj) (board) (endLoop) (isSelected) (isHealed)
+		basic_infection (creet_obj) (board) (endLoop) (isSelected) (isHealed) (quadtree)
 	)
 	else
 	(
 		creet_obj.state <- Infected;
-			basic_infection (creet_obj) (board) (endLoop) (isSelected) (isHealed)
+		basic_infection (creet_obj) (board) (endLoop) (isSelected) (isHealed) (quadtree)
 	)
 
 
@@ -218,21 +200,31 @@ let%client get_infected (creet_obj: creet) (board: Dom_html.divElement Js.t) (en
 	@return bool
 *)
 let%client check_river_infection (creet_obj: creet) : bool =
-	if creet_obj.y < float(board_border_infection) && creet_obj.state = Healthy then
+	if creet_obj.y < float(board_border_infection) then
 		true
 	else
 		false
 
+
+let%client wrapper_quadtree_collisions (quadtree: quadtree) (creet: creet) : bool = 
+	let is_collide = quadtree_check_collisions (quadtree) (creet) in
+	if is_collide && (Random.int 100) < infection_contact_percent then
+		true
+	else
+		false
 
 (*
 	Check if the creet is in the river and not infected, if it's the case, infect the creet 
 	@param creet_obj: creet -> the creet object to check
 	@return bool
 *)
-let%client check_infection (creet_obj: creet) (board: Dom_html.divElement Js.t) (endLoop: bool ref) (isSelected: bool ref) (isHealed: bool ref) =
-	if check_river_infection(creet_obj) then
-		get_infected (creet_obj) (board) (endLoop) (isSelected) (isHealed)
-
+let%client check_infection (creet_obj: creet) (board: Dom_html.divElement Js.t) (endLoop: bool ref) (isSelected: bool ref) (isHealed: bool ref)  (quadtree: quadtree) =
+	match creet_obj.state with
+		| Healthy -> (
+			if check_river_infection (creet_obj) || wrapper_quadtree_collisions (quadtree) (creet_obj)  then
+				get_infected (creet_obj) (board) (endLoop) (isSelected) (isHealed) (quadtree);
+		)
+		| _ -> ()
 
 (*
 	Check if the creet is colliding with the border of the board and change the direction of the creet
@@ -325,7 +317,27 @@ let%client drop_creet (creet_obj: creet) (isHealed: bool ref) =
 	@param board: Dom_html.divElement Js.t -> the board where the creet will be
 	@return unit
 *)
-let%client generate_new_creet board =
+	  (* log quad tree*)
+(* let%client rec log_quad_tree (node : quadtreeNode) =
+	List.iter (fun creet -> log((Printf.sprintf "Creet: %f %f %d\n" creet.x creet.y creet.id))) node.contains;
+	match node.childNo, node.childNe, node.childSo, node.childSe with
+	| Some no, Some ne, Some so, Some se -> 
+		log_quad_tree no;
+		log_quad_tree ne;
+		log_quad_tree so;
+		log_quad_tree se;
+	| _, _, _, _ -> ();
+	log("-----------") *)
+
+let%client modify_quadtree (quadtree: quadtree) (creet_obj: creet) = 
+	match creet_obj.state with
+	| Healthy -> ();
+	| _ -> (
+		quadtree_remove (quadtree) (creet_obj);
+		quadtree_insert (quadtree) (creet_obj)
+	)
+
+let%client generate_new_creet (board: Dom_html.divElement Js.t) (quadtree: quadtree) =
 
 	let creet_obj = new_creet () in
 	let endLoop = ref false in
@@ -338,10 +350,12 @@ let%client generate_new_creet board =
 		let%lwt () = Lwt_js.sleep 0.0001 in
 		if not (!isSelected) then
 		(
+			log(string_of_int(quadtree_size quadtree));
 			random_switch_direction (creet_obj);
 			handle_border_collision (creet_obj);
 			move_forward (creet_obj);
-			check_infection (creet_obj) (board) (endLoop) (isSelected) (isHealed);
+			modify_quadtree (quadtree) (creet_obj);
+			check_infection (creet_obj) (board) (endLoop) (isSelected) (isHealed) (quadtree);
 		);
 		if !endLoop then
 			Lwt.return ()
@@ -355,6 +369,7 @@ let%client generate_new_creet board =
 		let open Lwt_js_events in
 		mousedowns creet_obj.creet_elt (fun ev _ ->
 			isSelected := true;
+			quadtree_remove (quadtree) (creet_obj);
 			let%lwt () = (drag_creet (creet_obj) (ev) (board)) in
 			Lwt.pick
 				[

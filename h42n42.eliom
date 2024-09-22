@@ -4,8 +4,9 @@ open%server Eliom_content
 open%client Js_of_ocaml
 open%client Js_of_ocaml_lwt
 
-open%client H42n42_creet
 open%client H42n42_params
+open%client H42n42_collisions
+open%client H42n42_creet
 
 
 module%server H42n42_app =
@@ -26,20 +27,30 @@ let%client disable_event (event : Dom_html.dragEvent Js.t Dom_html.Event.typ) (h
 
 let%client init_client () =
 
-  disable_event Dom_html.Event.dragstart Dom_html.document;
-  disable_event Dom_html.Event.drop Dom_html.document;
+	disable_event Dom_html.Event.dragstart Dom_html.document;
+	disable_event Dom_html.Event.drop Dom_html.document;
 
-  let board = Eliom_content.Html.To_dom.of_div ~%board_elt in
-  board##.style##.width := Js.string (string_of_int(board_width) ^ "px");
-  board##.style##.height := Js.string (string_of_int(board_height) ^ "px");
-  Random.self_init ();
-  
-  let rec loop () =
-    let%lwt () = Lwt_js.sleep base_spawn_speed in
-    generate_new_creet board;
-    loop ()
-  in
-  Lwt.async loop
+	let board = Eliom_content.Html.To_dom.of_div ~%board_elt in
+	board##.style##.width := Js.string (string_of_int(board_width) ^ "px");
+	board##.style##.height := Js.string (string_of_int(board_height) ^ "px");
+	Random.self_init ();
+
+	let quadtree = init_quadtree 4 in
+	generate_new_creet board quadtree;
+	log_quad_tree quadtree;
+	
+	let log_quadtree_size () =
+		let size = quadtree_size quadtree in
+		Js_of_ocaml.Firebug.console##log(Js.string (string_of_int size))
+	
+	in
+	let rec loop () =
+		let%lwt () = Lwt_js.sleep base_spawn_speed in
+		generate_new_creet board quadtree;
+		log_quadtree_size ();
+		loop ()
+	in
+	Lwt.async loop
 
 
 let%server page () =
