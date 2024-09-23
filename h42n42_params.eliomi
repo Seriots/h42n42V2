@@ -9,6 +9,8 @@ val%client board_margin_left : int
 val%client board_margin_top : int
 
 val%client base_creet_number : int
+val%client min_creet_number : int
+val%client max_creet_number : int
 
 val%client base_speed : float
 val%client base_spawn_speed : float

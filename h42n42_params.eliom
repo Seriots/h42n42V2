@@ -9,6 +9,9 @@ let%client board_margin_left = 0
 let%client board_margin_top = 0
 
 let%client base_creet_number = 10
+let%client min_creet_number = 0
+let%client max_creet_number = 30
+
 
 let%client base_speed = 0.3
 let%client speed_increment_per_sec = 0.000008

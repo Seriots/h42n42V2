@@ -71,7 +71,7 @@
 
 .bottom-side {
     position: absolute;
-    bottom: 5%;
+    bottom: 0%;
     left: 50%;
     transform: translate(-50%, 0%);
     width: 1100px;
@@ -131,10 +131,72 @@
     background-image: url("../assets/startButtonClicked.png");
 }
 
+.slide-bar-background {
+    background-image: url("../assets/woodSign.png");
+    width: 300px;
+    height: 159px;
+    
+}
+
+.slide-bar-text {
+    color: #613208;
+    font-size: 20px;
+    font-family: "Kaph";
+    font-style: normal;
+    position: relative;
+    top: 35%;
+    left: 70%;
+    transform: translate(-50%, -50%);
+}
+
+input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    position: relative;
+    top: 46%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    /* creating a custom design */
+    width: 220px;
+    height: 20px;
+    cursor: pointer;
+    outline: none;
+    border-radius: 15px;
+    /*  overflow: hidden;  remove this line*/
+  
+    /* New additions */
+    background: #944a07;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+/* removing default appearance */
+    -webkit-appearance: none;
+    appearance: none;
+    /* creating a custom design */
+    height: 42px;
+    width: 28px;
+    background-image: url("../assets/sliderButton.png");
+    border: none;
+
+    transition: .2s ease-in-out;
+}
+
+/* Thumb: Firefox */
+input[type="range"]::-moz-range-thumb {
+    height: 42px;
+    width: 28px;
+    background-image: url("../assets/sliderButton.png");
+    border-radius: 10px;
+    border: none;
+    
+    transition: .2s ease-in-out;
+}
+
+
 body::after{
     
     position:absolute; width:0; height:0; overflow:hidden; z-index:-1;
-    content:url("../assets/startButtonHover.png");
+    content:url("../assets/startButtonHover.png") url("../assets/startButtonClicked.png");
 }
 
 

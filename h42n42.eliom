@@ -21,6 +21,7 @@ let%server time_elt = div ~a:[a_class ["stats-time"]] [txt "Time 00:00"]
 let%server healthyCount_elt = div ~a:[a_class ["stats-healthy"]] [txt "Healthy 0"]
 
 let%server game_over_elt = div ~a:[a_class ["game-over-board"]] [div ~a:[a_class ["game-over"]] [txt "Game Over"]]
+let%server test_input_elt = input ~a:[a_input_type `Range; a_class ["slide-bar"] ] ()
 
 let%client game_running = ref false
 
@@ -33,6 +34,7 @@ let%client disable_event (event : Dom_html.dragEvent Js.t Dom_html.Event.typ) (h
 
 let%client start_game () =
 	if not (!game_running) then (
+		let test_input = Eliom_content.Html.To_dom.of_input ~%test_input_elt in
 		let time_stats = Eliom_content.Html.To_dom.of_div ~%time_elt in
 		let healthy_stats = Eliom_content.Html.To_dom.of_div ~%healthyCount_elt in
 		let board = Eliom_content.Html.To_dom.of_div ~%board_elt in
@@ -40,6 +42,7 @@ let%client start_game () =
 		let game_over = Eliom_content.Html.To_dom.of_div ~%game_over_elt in
 		game_over##.style##.display := Js.string "none";
 
+		Js_of_ocaml.Firebug.console##log (test_input##.value);
 		
 		board##.innerHTML := Js.string "";
 		let healthy_creets = ref [] in
@@ -48,8 +51,9 @@ let%client start_game () =
 		let healthy_counter = ref 0 in
 		let start_time = (new%js Js.date_now)##getTime in
 		let timer = ref 0.0 in
+		let start_creet_number = (int_of_float((test_input##.value |> Js.to_string |> float_of_string) *. float(max_creet_number - min_creet_number) /. 100.0)) + min_creet_number in
 
-		for _ = 0 to base_creet_number - 1 do
+		for _ = 0 to start_creet_number - 1 do
 			generate_new_creet (board) (quadtree) (healthy_creets) (global_end) (start_time)
 		done;
 
@@ -103,6 +107,10 @@ let%server page () =
 		~css:[["css";"h42n42.css"]]
 		Html.F.(
 			body ([
+				div ~a:[a_class ["slide-bar-background"]] [
+					div ~a:[a_class ["slide-bar-text"]] [txt "Start Creet"];
+					test_input_elt;
+				];
 				div ~a:[a_class ["frame-background"]] [
 					game_over_elt;
 					board_elt
