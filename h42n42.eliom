@@ -17,6 +17,10 @@ module%server H42n42_app =
 end)
 
 let%server board_elt = div ~a:[a_class ["board"]] []
+let%server time_elt = div ~a:[a_class ["stats-time"]] [txt "Time 00:00"]
+let%server healthyCount_elt = div ~a:[a_class ["stats-healthy"]] [txt "Healthy 0"]
+
+let%server game_over_elt = div ~a:[a_class ["game-over-board"]] [div ~a:[a_class ["game-over"]] [txt "Game Over"]]
 
 let%client game_running = ref false
 
@@ -29,14 +33,24 @@ let%client disable_event (event : Dom_html.dragEvent Js.t Dom_html.Event.typ) (h
 
 let%client start_game () =
 	if not (!game_running) then (
+		let time_stats = Eliom_content.Html.To_dom.of_div ~%time_elt in
+		let healthy_stats = Eliom_content.Html.To_dom.of_div ~%healthyCount_elt in
 		let board = Eliom_content.Html.To_dom.of_div ~%board_elt in
+		
+		let game_over = Eliom_content.Html.To_dom.of_div ~%game_over_elt in
+		game_over##.style##.display := Js.string "none";
+
+		
 		board##.innerHTML := Js.string "";
 		let healthy_creets = ref [] in
 		let quadtree = init_quadtree 4 in
 		let global_end = ref false in
+		let healthy_counter = ref 0 in
+		let start_time = (new%js Js.date_now)##getTime in
+		let timer = ref 0.0 in
 
 		for _ = 0 to base_creet_number - 1 do
-			generate_new_creet (board) (quadtree) (healthy_creets) (global_end)
+			generate_new_creet (board) (quadtree) (healthy_creets) (global_end) (start_time)
 		done;
 
 
@@ -44,19 +58,24 @@ let%client start_game () =
 			let p = 
 				let rec game_loop () =
 					let%lwt () = Lwt_js.sleep base_spawn_speed in
-					generate_new_creet (board) (quadtree) (healthy_creets) (global_end);
+					generate_new_creet (board) (quadtree) (healthy_creets) (global_end) (start_time);
 					game_loop ()
 				in
 				game_loop ()
 			in
 			let rec check_end_game () =
 				let%lwt () = Lwt_js.sleep 0.1 in
-				if List.length !healthy_creets > 0 then
+				healthy_counter := List.length !healthy_creets;
+				timer := (new%js Js.date_now)##getTime -. start_time;
+				time_stats##.innerHTML := Js.string (Printf.sprintf "Time %02d:%02d" (int_of_float(!timer /. 1000.0) / 60) (int_of_float (!timer /. 1000.0) mod 60));
+				healthy_stats##.innerHTML := Js.string ("Healthy " ^ (string_of_int !healthy_counter));
+				if !healthy_counter > 0 then
 					check_end_game ()
 				else (
 					Lwt.cancel p;
 					global_end := true;
 					game_running := false;
+					game_over##.style##.display := Js.string "block";
 					Lwt.return ()
 				)
 			in
@@ -82,16 +101,22 @@ let%server page () =
 	Eliom_tools.F.html
 		~title:"h42n42"
 		~css:[["css";"h42n42.css"]]
-		Html.F.(body [
-			div ~a:[a_class ["frame-background"]] [
+		Html.F.(
+			body ([
+				div ~a:[a_class ["frame-background"]] [
+					game_over_elt;
 					board_elt
 				];
-			button ~a:[a_class ["start-button"]; a_onclick
-				[%client fun _ -> start_game () ]
-				] []
-				
-			]
-    	)
+				div ~a:[a_class ["bottom-side"]] [
+					time_elt;
+					button ~a:[a_class ["start-button"]; a_onclick
+						[%client fun _ -> start_game () ]
+					] [];
+					healthyCount_elt;
+				];
+
+			])
+		)
 )
         
 let%server main_service =

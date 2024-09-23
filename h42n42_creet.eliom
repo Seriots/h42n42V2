@@ -54,8 +54,9 @@ let%client update_img (creet_obj: creet) =
 	@return unit
 *)
 let%client move_forward (creet_obj: creet) =
-	creet_obj.x <- creet_obj.x +. creet_obj.direction.x *. creet_obj.speed;
-	creet_obj.y <- creet_obj.y +. creet_obj.direction.y *. creet_obj.speed;
+	let speed = creet_obj.speed +. ((new%js Js.date_now)##getTime -. creet_obj.start_time) *. speed_increment_per_sec in
+	creet_obj.x <- creet_obj.x +. creet_obj.direction.x *. speed;
+	creet_obj.y <- creet_obj.y +. creet_obj.direction.y *. speed;
 	creet_obj.creet_elt##.style##.left := Js.string (string_of_int (int_of_float(creet_obj.x)) ^ "px");
 	creet_obj.creet_elt##.style##.top := Js.string (string_of_int (int_of_float(creet_obj.y)) ^ "px")
 
@@ -82,10 +83,7 @@ let%client move_to_target (creet_obj: creet) =
 	)
 	else
 		creet_obj.direction <- dir;
-	creet_obj.x <- creet_obj.x +. creet_obj.direction.x *. creet_obj.speed;
-	creet_obj.y <- creet_obj.y +. creet_obj.direction.y *. creet_obj.speed;
-	creet_obj.creet_elt##.style##.left := Js.string (string_of_int (int_of_float(creet_obj.x)) ^ "px");
-	creet_obj.creet_elt##.style##.top := Js.string (string_of_int (int_of_float(creet_obj.y)) ^ "px")
+	move_forward (creet_obj)
 
 (*
 	Initialize a new creet object
@@ -98,7 +96,7 @@ let%client move_to_target (creet_obj: creet) =
 		- Create a dom object for the creet
 	@return creet
 *)
-let%client new_creet () = 
+let%client new_creet (start_time: float) = 
 	let size = { width = base_creet_width; height =  base_creet_height } in
 	let x = float((Random.int (board_width - int_of_float(size.width) - 32)) + 16) in
 	let y = float((Random.int (board_spawn_height - int_of_float(size.height))) + board_spawn_height_start) in
@@ -119,7 +117,7 @@ let%client new_creet () =
 	creet_elt##.style##.top := Js.string (string_of_int (board_margin_top + int_of_float(y)) ^ "px");
 	creet_elt##.style##.width := Js.string (string_of_int (int_of_float(size.width)) ^ "px");
 	creet_elt##.style##.height := Js.string (string_of_int (int_of_float(size.height)) ^ "px");
-	{ x; y; direction; speed; img; size; state; target; move_fonction; creet_elt; id }
+	{ x; y; direction; speed; img; size; state; target; move_fonction; start_time; creet_elt; id }
 
 
 (*
@@ -319,12 +317,12 @@ let%client handle_border_collision (creet_obj: creet) =
 	let potential_x = creet_obj.x +. creet_obj.direction.x *. creet_obj.speed in
 	let potential_y = creet_obj.y +. creet_obj.direction.y *. creet_obj.speed in
 
-	if int_of_float(potential_x) <= 0 || int_of_float(potential_x) > board_width - int_of_float(creet_obj.size.width) then
+	if int_of_float(potential_x) <= 0 || (int_of_float(potential_x) > (board_width - int_of_float(creet_obj.size.width)) && creet_obj.direction.x > 0.) then
 	(
 		creet_obj.direction.x <- -. creet_obj.direction.x;
 		update_img (creet_obj)
 	);
-	if int_of_float(potential_y) <= 0 || int_of_float(potential_y) > board_height - int_of_float(creet_obj.size.height) then
+	if int_of_float(potential_y) <= 0 || (int_of_float(potential_y) > (board_height - int_of_float(creet_obj.size.height)) && creet_obj.direction.y > 0.) then
 		creet_obj.direction.y <- -. creet_obj.direction.y
 
 
@@ -375,15 +373,17 @@ let%client drag_creet (creet_obj: creet) (ev: Dom_html.mouseEvent Js.t) (board: 
 	@param isHealed: bool ref -> the reference to the heal state of the creet
 	@return unit
 *)
-let%client drop_creet (creet_obj: creet) (isHealed: bool ref) =
-	if creet_obj.y > float(board_border_heal) then
-	(
-		creet_obj.state <- Healthy;
-		update_img creet_obj;
-		isHealed := true
-	);	
-	Lwt.return ()
-
+let%client drop_creet (creet_obj: creet) (isHealed: bool ref) (endLoop: bool ref) =
+	if !endLoop then (Lwt.return ())
+	else (
+		if creet_obj.y > float(board_border_heal) then
+		(
+			creet_obj.state <- Healthy;
+			update_img creet_obj;
+			isHealed := true
+		);	
+		Lwt.return ()
+	)
 
 let%client modify_quadtree (quadtree: quadtree) (creet_obj: creet) = 
 	match creet_obj.state with
@@ -398,9 +398,9 @@ let%client modify_quadtree (quadtree: quadtree) (creet_obj: creet) =
 	@param board: Dom_html.divElement Js.t -> the board where the creet will be
 	@return unit
 *)
-let%client generate_new_creet (board: Dom_html.divElement Js.t) (quadtree: quadtree) (healthy_creets: creet list ref) (global_end: bool ref) =
+let%client generate_new_creet (board: Dom_html.divElement Js.t) (quadtree: quadtree) (healthy_creets: creet list ref) (global_end: bool ref) (start_time: float) =
 
-	let creet_obj = new_creet () in
+	let creet_obj = new_creet (start_time) in
 	let endLoop = ref false in
 	let isSelected = ref false in
 	let isHealed = ref false in
@@ -430,11 +430,20 @@ let%client generate_new_creet (board: Dom_html.divElement Js.t) (quadtree: quadt
 	in
 	Lwt.async (fun () -> update_loop ());
 
+	let rec check_end_loop () =
+		let%lwt () = Lwt_js.sleep 0.1 in
+		if !endLoop then
+			Lwt.return ()
+		else
+			check_end_loop ()
+	in
 
 	Lwt.async (fun () ->
 		let open Lwt_js_events in
 		mousedowns creet_obj.creet_elt (fun ev _ ->
 			if !endLoop then
+				Lwt.return ()
+			else if creet_obj.state = Healthy && List.length !healthy_creets <= 1 then
 				Lwt.return ()
 			else
 			(
@@ -445,7 +454,8 @@ let%client generate_new_creet (board: Dom_html.divElement Js.t) (quadtree: quadt
 				Lwt.pick
 					[
 						mousemoves Dom_html.document (fun x _ -> (drag_creet (creet_obj) (x) (board)));
-						let%lwt _ = mouseup Dom_html.document in (isSelected := false; (match creet_obj.state with | Healthy -> (healthy_creets := creet_obj :: !healthy_creets) | _ -> ()); drop_creet (creet_obj) (isHealed))
+						check_end_loop ();
+						let%lwt _ = mouseup Dom_html.document in (isSelected := false; (match creet_obj.state with | Healthy -> (healthy_creets := creet_obj :: !healthy_creets) | _ -> ()); drop_creet (creet_obj) (isHealed) (endLoop))
 					]
 			)
 		)

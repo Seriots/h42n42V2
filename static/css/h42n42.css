@@ -2,6 +2,37 @@
     font-family: sans-serif;
 }
 
+@font-face {
+    font-family: "Kaph";
+        src: url('../assets/Kaph-Regular.ttf') format('truetype');
+  }
+
+
+.game-over-board {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 5;
+    display: none;
+    background-color: rgba(0, 0, 0, 0.5);
+    width: 800px;
+    height: 800px;
+}
+
+.game-over {
+    color: #60b060;
+    font-size: 60px;
+    font-family: "Kaph";
+    font-style: normal;
+    position: absolute;
+    width: 100%;
+    text-align: center;
+    top: 50%;
+    transform: translate(0%, -50%);
+
+}
+
 .board {
     background-image: url("../assets/map.png");
     padding: 0px;
@@ -9,6 +40,7 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
+    z-index: 4;
     
 }
 
@@ -22,6 +54,7 @@
     height: 898px;
     background-size: 898px;
     transform: translate(-50%, -58%);
+    z-index: 3;
 }
 
 .creet {
@@ -36,11 +69,49 @@
 
 }
 
-.start-button {
+.bottom-side {
     position: absolute;
     bottom: 5%;
     left: 50%;
     transform: translate(-50%, 0%);
+    width: 1100px;
+    height: 100px;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 2;
+}
+
+.stats-time {
+    /* position: absolute;
+    bottom: 5%;
+    left: 30%;
+    transform: translate(0%, -10%); */
+    color: #204020;
+    font-size: 40px;
+    font-family: "Kaph";
+    font-style: normal;
+    width: 320px;
+}
+
+.stats-healthy {
+    /* position: absolute;
+    bottom: 5%;
+    left: 30%;
+    transform: translate(0%, -10%); */
+    color: #204020;
+    font-size: 40px;
+    font-family: "Kaph";
+    font-style: normal;
+    width: 320px;
+}
+
+.start-button {
+    /* position: absolute;
+    bottom: 5%;
+    left: 50%;
+    transform: translate(-50%, 0%); */
     background-image: url("../assets/startButton.png");
     width: 220px;
     height: 80px;
@@ -50,11 +121,22 @@
     background-color: transparent;
     padding: 0;
     margin: 0;
+    z-index: 0;
 }
 
+.start-button:hover {
+    background-image: url("../assets/startButtonHover.png");
+}
 .start-button:active {
     background-image: url("../assets/startButtonClicked.png");
 }
+
+body::after{
+    
+    position:absolute; width:0; height:0; overflow:hidden; z-index:-1;
+    content:url("../assets/startButtonHover.png");
+}
+
 
 body {
     background-image: url("../assets/fullBackground.png");

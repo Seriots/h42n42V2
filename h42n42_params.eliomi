@@ -16,6 +16,8 @@ val%client base_spawn_speed : float
 val%client infected_life_duration : float
 val%client infected_speed_reduce_factor : float
 
+val%client speed_increment_per_sec : float
+
 val%client growth_delay : float
 
 val%client base_creet_width : float

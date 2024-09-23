@@ -8,14 +8,14 @@ let%client board_border_heal = int_of_float(float(board_height) *. (42.0 /. 50.0
 let%client board_margin_left = 0
 let%client board_margin_top = 0
 
-let%client base_creet_number = 4
+let%client base_creet_number = 10
 
 let%client base_speed = 0.3
-(* let%client speed_increment_per_sec = 0.05 *)
+let%client speed_increment_per_sec = 0.000008
 
 let%client base_spawn_speed = 5.0
 
-let%client infected_life_duration = 12.0
+let%client infected_life_duration = 15.0
 let%client infected_speed_reduce_factor = 0.85
 
 let%client growth_delay = 0.1
