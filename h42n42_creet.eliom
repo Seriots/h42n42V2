@@ -11,7 +11,7 @@ open%client H42n42_collisions
 	@param msg: string -> the msg to log
 	@return unit
 *)
-let%client log (msg: string) : unit = Js_of_ocaml.Firebug.console##log(Js.string msg)
+(* let%client log (msg: string) : unit = Js_of_ocaml.Firebug.console##log(Js.string msg) *)
 
 
 (*
@@ -378,28 +378,12 @@ let%client drag_creet (creet_obj: creet) (ev: Dom_html.mouseEvent Js.t) (board: 
 let%client drop_creet (creet_obj: creet) (isHealed: bool ref) =
 	if creet_obj.y > float(board_border_heal) then
 	(
-		log("healed");
 		creet_obj.state <- Healthy;
 		update_img creet_obj;
 		isHealed := true
 	);	
 	Lwt.return ()
-(*
-	Generate a new creet and start its loop
-	@param board: Dom_html.divElement Js.t -> the board where the creet will be
-	@return unit
-*)
-	  (* log quad tree*)
-(* let%client rec log_quad_tree (node : quadtreeNode) =
-	List.iter (fun creet -> log((Printf.sprintf "Creet: %f %f %d\n" creet.x creet.y creet.id))) node.contains;
-	match node.childNo, node.childNe, node.childSo, node.childSe with
-	| Some no, Some ne, Some so, Some se -> 
-		log_quad_tree no;
-		log_quad_tree ne;
-		log_quad_tree so;
-		log_quad_tree se;
-	| _, _, _, _ -> ();
-	log("-----------") *)
+
 
 let%client modify_quadtree (quadtree: quadtree) (creet_obj: creet) = 
 	match creet_obj.state with
@@ -409,7 +393,12 @@ let%client modify_quadtree (quadtree: quadtree) (creet_obj: creet) =
 		quadtree_insert (quadtree) (creet_obj)
 	)
 
-let%client generate_new_creet (board: Dom_html.divElement Js.t) (quadtree: quadtree) (healthy_creets: creet list ref) =
+(*
+	Generate a new creet and start its loop
+	@param board: Dom_html.divElement Js.t -> the board where the creet will be
+	@return unit
+*)
+let%client generate_new_creet (board: Dom_html.divElement Js.t) (quadtree: quadtree) (healthy_creets: creet list ref) (global_end: bool ref) =
 
 	let creet_obj = new_creet () in
 	let endLoop = ref false in
@@ -423,12 +412,14 @@ let%client generate_new_creet (board: Dom_html.divElement Js.t) (quadtree: quadt
 		let%lwt () = Lwt_js.sleep 0.0001 in
 		if not (!isSelected) then
 		(
-			log(string_of_int(quadtree_size quadtree));
 			random_switch_direction (creet_obj);
 			handle_border_collision (creet_obj);
 			creet_obj.move_fonction (creet_obj);
 			modify_quadtree (quadtree) (creet_obj);
 			check_infection (creet_obj) (board) (endLoop) (isSelected) (isHealed) (quadtree) (healthy_creets);
+		);
+		if !global_end then (
+			endLoop := true;
 		);
 		if !endLoop then (
 			quadtree_remove (quadtree) (creet_obj);
@@ -443,14 +434,19 @@ let%client generate_new_creet (board: Dom_html.divElement Js.t) (quadtree: quadt
 	Lwt.async (fun () ->
 		let open Lwt_js_events in
 		mousedowns creet_obj.creet_elt (fun ev _ ->
-			isSelected := true;
-			healthy_creets := List.filter (fun x -> x != creet_obj) !healthy_creets;
-			quadtree_remove (quadtree) (creet_obj);
-			let%lwt () = (drag_creet (creet_obj) (ev) (board)) in
-			Lwt.pick
-				[
-					mousemoves Dom_html.document (fun x _ -> (drag_creet (creet_obj) (x) (board)));
-					let%lwt _ = mouseup Dom_html.document in (isSelected := false; healthy_creets := creet_obj :: !healthy_creets; drop_creet (creet_obj) (isHealed))
-				]
+			if !endLoop then
+				Lwt.return ()
+			else
+			(
+				isSelected := true;
+				healthy_creets := List.filter (fun x -> x != creet_obj) !healthy_creets;
+				quadtree_remove (quadtree) (creet_obj);
+				let%lwt () = (drag_creet (creet_obj) (ev) (board)) in
+				Lwt.pick
+					[
+						mousemoves Dom_html.document (fun x _ -> (drag_creet (creet_obj) (x) (board)));
+						let%lwt _ = mouseup Dom_html.document in (isSelected := false; (match creet_obj.state with | Healthy -> (healthy_creets := creet_obj :: !healthy_creets) | _ -> ()); drop_creet (creet_obj) (isHealed))
+					]
+			)
 		)
 	)

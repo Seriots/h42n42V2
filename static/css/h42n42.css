@@ -36,6 +36,26 @@
 
 }
 
+.start-button {
+    position: absolute;
+    bottom: 5%;
+    left: 50%;
+    transform: translate(-50%, 0%);
+    background-image: url("../assets/startButton.png");
+    width: 220px;
+    height: 80px;
+    background-size: 220px 80px;
+    border: none;
+    cursor: pointer;
+    background-color: transparent;
+    padding: 0;
+    margin: 0;
+}
+
+.start-button:active {
+    background-image: url("../assets/startButtonClicked.png");
+}
+
 body {
     background-image: url("../assets/fullBackground.png");
 }
