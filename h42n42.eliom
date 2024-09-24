@@ -21,7 +21,13 @@ let%server time_elt = div ~a:[a_class ["stats-time"]] [txt "Time 00:00"]
 let%server healthyCount_elt = div ~a:[a_class ["stats-healthy"]] [txt "Healthy 0"]
 
 let%server game_over_elt = div ~a:[a_class ["game-over-board"]] [div ~a:[a_class ["game-over"]] [txt "Game Over"]]
-let%server test_input_elt = input ~a:[a_input_type `Range; a_class ["slide-bar"] ] ()
+
+let%server base_creet_elt = input ~a:[a_input_type `Range; a_class ["slide-bar"]; a_value strig_of_float(base_creet_number.base) ] ()
+let%server base_speed_elt = input ~a:[a_input_type `Range; a_class ["slide-bar"]; a_value strig_of_float(base_speed.base) ] ()
+let%server mean_percent_elt = input ~a:[a_input_type `Range; a_class ["slide-bar"]; a_value strig_of_float(mean_percent.base) ] ()
+let%server berserker_percent_elt = input ~a:[a_input_type `Range; a_class ["slide-bar"]; a_value strig_of_float(berserker_percent.base) ] ()
+let%server infecton_contact_percent_elt = input ~a:[a_input_type `Range; a_class ["slide-bar"]; a_value strig_of_float(infection_contact_percent.base) ] ()
+let%server infected_life_duration_elt = input ~a:[a_input_type `Range; a_class ["slide-bar"]; a_value strig_of_float(infected_life_duration.base) ] ()
 
 let%client game_running = ref false
 
@@ -32,9 +38,17 @@ let%client disable_event (event : Dom_html.dragEvent Js.t Dom_html.Event.typ) (h
 			(fun ev _ -> Dom.preventDefault ev; Lwt.return ()))
 
 
+let%client get_params_value (percent: float) (params: parameters_obj) : float =
+	percent *. (params.max -. params.min) /. 100 +. params.min
+
 let%client start_game () =
 	if not (!game_running) then (
-		let test_input = Eliom_content.Html.To_dom.of_input ~%test_input_elt in
+		let s_base_creet = Eliom_content.Html.To_dom.of_input ~%base_creet_elt in
+		let s_base_speed = Eliom_content.Html.To_dom.of_input ~%base_speed_elt in
+		let s_mean_percent = Eliom_content.Html.To_dom.of_input ~%mean_percent_elt in
+		let s_berserker_percent = Eliom_content.Html.To_dom.of_input ~%berserker_percent_elt in
+		let s_infecton_contact_percent = Eliom_content.Html.To_dom.of_input ~%infecton_contact_percent_elt in
+		let s_infected_life_duration = Eliom_content.Html.To_dom.of_input ~%infected_life_duration_elt in
 		let time_stats = Eliom_content.Html.To_dom.of_div ~%time_elt in
 		let healthy_stats = Eliom_content.Html.To_dom.of_div ~%healthyCount_elt in
 		let board = Eliom_content.Html.To_dom.of_div ~%board_elt in
@@ -42,8 +56,6 @@ let%client start_game () =
 		let game_over = Eliom_content.Html.To_dom.of_div ~%game_over_elt in
 		game_over##.style##.display := Js.string "none";
 
-		Js_of_ocaml.Firebug.console##log (test_input##.value);
-		
 		board##.innerHTML := Js.string "";
 		let healthy_creets = ref [] in
 		let quadtree = init_quadtree 4 in
@@ -51,10 +63,17 @@ let%client start_game () =
 		let healthy_counter = ref 0 in
 		let start_time = (new%js Js.date_now)##getTime in
 		let timer = ref 0.0 in
-		let start_creet_number = (int_of_float((test_input##.value |> Js.to_string |> float_of_string) *. float(max_creet_number - min_creet_number) /. 100.0)) + min_creet_number in
+		let all_params = {
+			base_speed = get_params_value (s_base_speed##.value |> Js.to_string |> float_of_string) (base_speed);
+			base_creet_number = get_params_value (s_base_creet##.value |> Js.to_string |> float_of_string) (base_creet_number);
+			mean_percent = get_params_value (s_mean_percent##.value |> Js.to_string |> float_of_string) (mean_spawn_percent);
+			berserker_percent = get_params_value (s_berserker_percent##.value |> Js.to_string |> float_of_string) (berserker_spawn_percent);
+			infection_contact_percent = get_params_value (s_infecton_contact_percent##.value |> Js.to_string |> float_of_string) (infection_contact_percent);
+			infected_life_duration = get_params_value (s_infected_life_duration##.value |> Js.to_string |> float_of_string) (infected_life_duration);
+		} in
 
-		for _ = 0 to start_creet_number - 1 do
-			generate_new_creet (board) (quadtree) (healthy_creets) (global_end) (start_time)
+		for _ = 0 to all_params.base_creet_number - 1 do
+			generate_new_creet (board) (quadtree) (healthy_creets) (global_end) (start_time) (all_params)
 		done;
 
 
@@ -62,7 +81,7 @@ let%client start_game () =
 			let p = 
 				let rec game_loop () =
 					let%lwt () = Lwt_js.sleep base_spawn_speed in
-					generate_new_creet (board) (quadtree) (healthy_creets) (global_end) (start_time);
+					generate_new_creet (board) (quadtree) (healthy_creets) (global_end) (start_time) (all_params);
 					game_loop ()
 				in
 				game_loop ()
@@ -107,9 +126,33 @@ let%server page () =
 		~css:[["css";"h42n42.css"]]
 		Html.F.(
 			body ([
-				div ~a:[a_class ["slide-bar-background"]] [
-					div ~a:[a_class ["slide-bar-text"]] [txt "Start Creet"];
-					test_input_elt;
+				div ~a: [a_class ["left-side"]] [
+					div ~a:[a_class ["slide-bar-background"]] [
+						div ~a:[a_class ["slide-bar-text"]] [txt "Start Creet"];
+						base_creet_elt;
+					];
+					div ~a:[a_class ["slide-bar-background"]] [
+						div ~a:[a_class ["slide-bar-text"]] [txt "Base Speed"];
+						base_speed_elt;
+					];
+					div ~a:[a_class ["slide-bar-background"]] [
+						div ~a:[a_class ["slide-bar-text"]] [txt "Virus Power"];
+						infected_life_duration_elt;
+					];
+				];
+				div ~a: [a_class ["right-side"]] [
+					div ~a:[a_class ["slide-bar-background"]] [
+						div ~a:[a_class ["slide-bar-text"]] [txt "Mean %"];
+						mean_percent_elt;
+					];
+					div ~a:[a_class ["slide-bar-background"]] [
+						div ~a:[a_class ["slide-bar-text"]] [txt "Berserker %"];
+						berserker_percent_elt;
+					];
+					div ~a:[a_class ["slide-bar-background"]] [
+						div ~a:[a_class ["slide-bar-text"]] [txt "Virus Spread"];
+						infecton_contact_percent_elt;
+					];
 				];
 				div ~a:[a_class ["frame-background"]] [
 					game_over_elt;

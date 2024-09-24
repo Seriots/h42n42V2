@@ -1,4 +1,4 @@
-(dirs tools client gen assets static local srcs)
+(dirs tools client gen static local srcs)
 
 (library
  (name h42n42)

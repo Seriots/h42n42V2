@@ -43,3 +43,18 @@ type%client  quadtree = {
 	mutable root : quadtreeNode option;
 	mutable maxDepth : int;
 }
+
+type%client parameters_obj = {
+	base: float;
+	min: float;
+	max: float;
+}
+
+type%client all_params = {
+	base_speed: float;
+	base_creet_number: float;
+	mean_percent: float;
+	berserker_percent: float;
+	infection_contact_percent: float;
+	infected_life_duration: float;
+}

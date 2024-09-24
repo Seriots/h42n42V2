@@ -8,17 +8,28 @@ let%client board_border_heal = int_of_float(float(board_height) *. (42.0 /. 50.0
 let%client board_margin_left = 0
 let%client board_margin_top = 0
 
-let%client base_creet_number = 10
-let%client min_creet_number = 0
-let%client max_creet_number = 30
 
+let%client base_creet_number = {
+  base = 10.0;
+  min = 0.0;
+  max = 30.0;
+}
 
-let%client base_speed = 0.3
+let%client base_speed = {
+  base = 0.3;
+  min = 0.1;
+  max = 0.8;
+}
+
 let%client speed_increment_per_sec = 0.000008
 
 let%client base_spawn_speed = 5.0
 
-let%client infected_life_duration = 15.0
+let%client infected_life_duration = {
+  base = 15.0;
+  min = 5.0;
+  max = 30.0;  
+}
 let%client infected_speed_reduce_factor = 0.85
 
 let%client growth_delay = 0.1
@@ -27,10 +38,22 @@ let%client base_creet_width = 50.0
 let%client base_creet_height = 50.0
 let%client hitbox_ratio = 0.85
 
-let%client berserker_spawn_percent = 10
-let%client mean_spawn_percent = 10
+let%client berserker_spawn_percent = {
+  base = 10;
+  min = 0;
+  max = 45;
+}
+
+let%client mean_spawn_percent = {
+  base = 10;
+  min = 0;
+  max = 45;
+}
 
 let%client mean_shrink_percent = 0.85
 
-
-let%client infection_contact_percent = 2
+let%client infection_contact_percent = {
+  base = 2;
+  min = 0;
+  max = 10;
+}
