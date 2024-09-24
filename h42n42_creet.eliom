@@ -481,7 +481,11 @@ let%client generate_new_creet (board: Dom_html.divElement Js.t) (quadtree: quadt
 					[
 						mousemoves Dom_html.document (fun x _ -> (drag_creet (creet_obj) (x) (board)));
 						check_end_loop ();
-						let%lwt _ = mouseup Dom_html.document in (isSelected := false; (match creet_obj.state with | Healthy -> (healthy_creets := creet_obj :: !healthy_creets) | _ -> ()); drop_creet (creet_obj) (isHealed) (endLoop))
+						let%lwt _ = mouseup Dom_html.document in (
+																	isSelected := false;
+																	(match creet_obj.state with | Healthy -> (healthy_creets := creet_obj :: !healthy_creets) | _ -> ());
+																	drop_creet (creet_obj) (isHealed) (endLoop)
+																)
 					]
 			)
 		)
