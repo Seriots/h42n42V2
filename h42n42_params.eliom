@@ -1,3 +1,5 @@
+open%client H42n42_types
+
 let%client board_width = 800
 let%client board_height = 800
 let%client board_spawn_height = int_of_float(float(board_height) *. (36.0 /. 50.0))
@@ -39,21 +41,21 @@ let%client base_creet_height = 50.0
 let%client hitbox_ratio = 0.85
 
 let%client berserker_spawn_percent = {
-  base = 10;
-  min = 0;
-  max = 45;
+  base = 10.0;
+  min = 0.0;
+  max = 45.0;
 }
 
 let%client mean_spawn_percent = {
-  base = 10;
-  min = 0;
-  max = 45;
+  base = 10.0;
+  min = 0.0;
+  max = 45.0;
 }
 
 let%client mean_shrink_percent = 0.85
 
 let%client infection_contact_percent = {
-  base = 2;
-  min = 0;
-  max = 10;
+  base = 2.0;
+  min = 0.0;
+  max = 10.0;
 }

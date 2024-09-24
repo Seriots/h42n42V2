@@ -2,6 +2,11 @@ open%client H42n42_types
 open%client H42n42_params
 
 
+(*
+	Log a quad tree
+	@param quadtree: a quad tree
+	@return: unit
+*)
 let%client log_quad_tree (quadtree: quadtree) : unit =
 	match quadtree.root with
 	| Some node -> 
@@ -20,6 +25,12 @@ let%client log_quad_tree (quadtree: quadtree) : unit =
 		log_node node
 	| None -> ()
 
+
+(*
+	Return the number of creet in the quadtree
+	@param quadtree: a quad tree
+	@return: an int
+*)
 let%client quadtree_size (quadtree: quadtree) : int =
 	let rec size (node: quadtreeNode) : int =
 		match node with
@@ -35,6 +46,12 @@ let%client quadtree_size (quadtree: quadtree) : int =
 	| None -> 0
 
 
+(*
+	Remove a creet from a quadtree
+	@param quadtree: a quad tree
+	@param creet: a creet
+	@return: unit
+*)
 let%client quadtree_remove (quadtree: quadtree) (creet: creet) : unit =
 	match quadtree.root with
 	| Some node -> 
@@ -75,6 +92,12 @@ let%client fit_creet_in_node (node: quadtreeNode) (creet: creet) : bool =
 				&& creet.y +. creet_height_adjusted >= float_of_int node.startY && creet.y +. creet_height_adjusted <= float_of_int (node.startY + node.height)
 
 
+(*
+	Insert a creet in a quadtree
+	@param node: a quadtree node
+	@param creet: a creet
+	@return: unit
+*)
 let%client rec insert_creet (node: quadtreeNode) (creet: creet) : unit =
 	match node with
 	| node ->
@@ -96,6 +119,12 @@ let%client quadtree_insert (quadtree: quadtree) (creet: creet) : unit =
 	| None -> ()
 
 
+(*
+	Check if two creets are colliding
+	@param creet1: a creet
+	@param creet2: a creet
+	@return: a boolean
+*)
 let%client is_colliding (creet1: creet) (creet2: creet) : bool =
 	let centerX1 = creet1.x +. creet1.size.width /. 2. in
 	let centerY1 = creet1.y +. creet1.size.height /. 2. in

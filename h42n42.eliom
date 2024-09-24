@@ -4,6 +4,7 @@ open%server Eliom_content
 open%client Js_of_ocaml
 open%client Js_of_ocaml_lwt
 
+open%client H42n42_types
 open%client H42n42_params
 open%client H42n42_collisions
 open%client H42n42_creet
@@ -22,15 +23,22 @@ let%server healthyCount_elt = div ~a:[a_class ["stats-healthy"]] [txt "Healthy 0
 
 let%server game_over_elt = div ~a:[a_class ["game-over-board"]] [div ~a:[a_class ["game-over"]] [txt "Game Over"]]
 
-let%server base_creet_elt = input ~a:[a_input_type `Range; a_class ["slide-bar"]; a_value strig_of_float(base_creet_number.base) ] ()
-let%server base_speed_elt = input ~a:[a_input_type `Range; a_class ["slide-bar"]; a_value strig_of_float(base_speed.base) ] ()
-let%server mean_percent_elt = input ~a:[a_input_type `Range; a_class ["slide-bar"]; a_value strig_of_float(mean_percent.base) ] ()
-let%server berserker_percent_elt = input ~a:[a_input_type `Range; a_class ["slide-bar"]; a_value strig_of_float(berserker_percent.base) ] ()
-let%server infecton_contact_percent_elt = input ~a:[a_input_type `Range; a_class ["slide-bar"]; a_value strig_of_float(infection_contact_percent.base) ] ()
-let%server infected_life_duration_elt = input ~a:[a_input_type `Range; a_class ["slide-bar"]; a_value strig_of_float(infected_life_duration.base) ] ()
+let%server base_creet_elt = input ~a:[a_input_type `Range; a_class ["slide-bar"]; a_value ("34.0"); ] ()
+let%server base_speed_elt = input ~a:[a_input_type `Range; a_class ["slide-bar"]; a_value ("29.0") ] ()
+let%server mean_percent_elt = input ~a:[a_input_type `Range; a_class ["slide-bar"]; a_value ("22.23") ] ()
+let%server berserker_percent_elt = input ~a:[a_input_type `Range; a_class ["slide-bar"]; a_value ("22.23") ] ()
+let%server infecton_contact_percent_elt = input ~a:[a_input_type `Range; a_class ["slide-bar"]; a_value ("20.0") ] ()
+let%server infected_life_duration_elt = input ~a:[a_input_type `Range; a_class ["slide-bar"]; a_value ("40.0") ] ()
 
 let%client game_running = ref false
 
+
+(*
+	Disable basic drag and drop event
+	@param event: a Dom_html.dragEvent Js.t Dom_html.Event.typ
+	@param html_elt: a Dom_html.eventTarget Js.t
+	@return: unit
+*)
 let%client disable_event (event : Dom_html.dragEvent Js.t Dom_html.Event.typ) (html_elt : #Dom_html.eventTarget Js.t) =
 	Lwt.async (fun () ->
 		Lwt_js_events.seq_loop
@@ -38,9 +46,20 @@ let%client disable_event (event : Dom_html.dragEvent Js.t Dom_html.Event.typ) (h
 			(fun ev _ -> Dom.preventDefault ev; Lwt.return ()))
 
 
+(*
+	Wrapper to handle the parameters
+	@param percent: a float
+	@param params: a parameters_obj
+	@return: a float
+*)
 let%client get_params_value (percent: float) (params: parameters_obj) : float =
-	percent *. (params.max -. params.min) /. 100 +. params.min
+	percent *. (params.max -. params.min) /. 100. +. params.min
 
+
+(*
+	Called on button start onclick, start the game
+	@return: unit
+*)
 let%client start_game () =
 	if not (!game_running) then (
 		let s_base_creet = Eliom_content.Html.To_dom.of_input ~%base_creet_elt in
@@ -69,10 +88,10 @@ let%client start_game () =
 			mean_percent = get_params_value (s_mean_percent##.value |> Js.to_string |> float_of_string) (mean_spawn_percent);
 			berserker_percent = get_params_value (s_berserker_percent##.value |> Js.to_string |> float_of_string) (berserker_spawn_percent);
 			infection_contact_percent = get_params_value (s_infecton_contact_percent##.value |> Js.to_string |> float_of_string) (infection_contact_percent);
-			infected_life_duration = get_params_value (s_infected_life_duration##.value |> Js.to_string |> float_of_string) (infected_life_duration);
+			infected_life_duration = infected_life_duration.max -. get_params_value (s_infected_life_duration##.value |> Js.to_string |> float_of_string) (infected_life_duration);
 		} in
 
-		for _ = 0 to all_params.base_creet_number - 1 do
+		for _ = 0 to int_of_float(all_params.base_creet_number) - 1 do
 			generate_new_creet (board) (quadtree) (healthy_creets) (global_end) (start_time) (all_params)
 		done;
 
@@ -108,6 +127,10 @@ let%client start_game () =
 		Lwt.async (fun () -> loop ())
 	)
 
+
+(*
+	Basic initialization of the client
+*)
 let%client init_client () =
 
 	disable_event Dom_html.Event.dragstart Dom_html.document;
@@ -119,6 +142,9 @@ let%client init_client () =
 	Random.self_init ()
 
 
+(*
+		The page serv to the client
+*)
 let%server page () =
 (
 	Eliom_tools.F.html
@@ -132,7 +158,7 @@ let%server page () =
 						base_creet_elt;
 					];
 					div ~a:[a_class ["slide-bar-background"]] [
-						div ~a:[a_class ["slide-bar-text"]] [txt "Base Speed"];
+						div ~a:[a_class ["slide-bar-text"]] [txt "Basic Speed"];
 						base_speed_elt;
 					];
 					div ~a:[a_class ["slide-bar-background"]] [
@@ -142,7 +168,7 @@ let%server page () =
 				];
 				div ~a: [a_class ["right-side"]] [
 					div ~a:[a_class ["slide-bar-background"]] [
-						div ~a:[a_class ["slide-bar-text"]] [txt "Mean %"];
+						div ~a:[a_class ["slide-bar-text"]] [txt "Nasty Mean %"];
 						mean_percent_elt;
 					];
 					div ~a:[a_class ["slide-bar-background"]] [

@@ -85,11 +85,11 @@
 
 .right-side {
     position: absolute;
-    top: 50%;
-    right: 0%;
+    top: 44%;
+    right: 10%;
     transform: translate(0%, -50%);
     width: 100px;
-    height: 1100px;
+    height: 800px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -99,11 +99,11 @@
 
 .left-side {
     position: absolute;
-    top: 50%;
-    left: 0%;
+    top: 44%;
+    left: 10%;
     transform: translate(0%, -50%);
     width: 100px;
-    height: 1100px;
+    height: 800px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
