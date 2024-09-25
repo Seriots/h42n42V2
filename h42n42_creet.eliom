@@ -435,7 +435,7 @@ let%client generate_new_creet (board: Dom_html.divElement Js.t) (quadtree: quadt
 	healthy_creets := creet_obj :: !healthy_creets;
 
 	let rec update_loop () =
-		let%lwt () = Lwt_js.sleep 0.0001 in
+		let%lwt () = Lwt_js.sleep 0.0005 in
 		if not (!isSelected) then
 		(
 			random_switch_direction (creet_obj);
