@@ -1,7 +1,9 @@
 # h42n42V2
 
 Install opam with `bash -c "sh <(curl -fsSL https://raw.githubusercontent.com/ocaml/opam/master/shell/install.sh)"`
+
 Run `opam init`
+
 Run `opam install ocsipersist-sqlite-config eliom`
 
 Make the project `Make test.opt`
