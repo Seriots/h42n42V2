@@ -1,0 +1,13 @@
+<ocsigen>
+  <server>
+    <port>8080</port>
+    <logdir>/root/h42n42V2/local/var/log/h42n42</logdir>
+    <datadir>/root/h42n42V2/local/var/data/h42n42</datadir>
+    <charset>utf-8</charset>
+    <commandpipe>/root/h42n42V2/local/var/run/h42n42-cmd</commandpipe>
+    <extension findlib-package="ocsigenserver.ext.staticmod"/>
+    <host hostfilter="*" defaulthostname="h42n42.leo-giband.com">
+      <static dir="/root/h42n42V2/local/var/www/h42n42" />
+    </host>
+  </server>
+</ocsigen>

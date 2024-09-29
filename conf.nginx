@@ -1,0 +1,8 @@
+server {
+   location / {
+    proxy_pass http://h42n42.leo-giband.com:8080;
+    proxy_redirect http://h42n42.leo-giband.com:8080/ $scheme://$host:80/;
+  }
+   server_name h42n42.leo-giband.com;
+
+}
