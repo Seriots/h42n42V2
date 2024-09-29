@@ -22,9 +22,9 @@ This game consist of keeping away healthy creet (green ones) far from the river.
 
 If every creets get sick, you lose.
 
-![Capture d’écran du 2024-09-29 15-49-53](https://github.com/user-attachments/assets/d7f177da-fc13-49b8-a0eb-464312e58cd7)
+![Capture d’écran du 2024-09-29 15-56-56](https://github.com/user-attachments/assets/301ff7df-7b8c-417b-8ba0-b75a0bd4b712)
 
-Survive a long as you can !
+Survive a long as you can ! 
 
 -----------------------------------
 
